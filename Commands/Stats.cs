@@ -41,15 +41,6 @@ public class Stats : AsyncCommand<Stats.Settings>
             .CenterLabel()
             .AddItems(groups, (group) => new BarChartItem(group.Key, group.Count(), Color.FromInt32(random.Next(1, 231)))));
 
-        var table = new Table();
-        table.AddColumn("Id");
-        table.AddColumn("Type");
-        foreach (var msg in msgs)
-        {
-            table.AddRow(msg.Id, msg.Type);
-        }
-
-        AnsiConsole.Write(table);
 
         return 0;
     }

@@ -33,8 +33,8 @@ public static class Program
         {
             config.SetApplicationName("servicebus-search");
 
-            config.AddCommand<SBCommand>("print")
-                  .WithDescription("Print the DLQ");
+            config.AddCommand<Peek>("peek")
+                  .WithDescription("Peek the messages in the queue");
 
             config.AddCommand<Stats>("stats");
         });

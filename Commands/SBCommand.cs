@@ -5,11 +5,11 @@ using ServiceBusSearch.Services;
 
 namespace ServiceBusSearch.Commands;
 
-public class SBCommand : AsyncCommand<SBCommand.Settings>
+public class Peek : AsyncCommand<Peek.Settings>
 {
     private readonly IServiceBus _serviceBus;
 
-    public SBCommand(IServiceBus serviceBus)
+    public Peek(IServiceBus serviceBus)
     {
         _serviceBus = serviceBus;
     }
@@ -19,20 +19,29 @@ public class SBCommand : AsyncCommand<SBCommand.Settings>
         [CommandOption("--queue <QUEUE>")]
         [Description("The name of the service bus queue")]
         public string Queue { get; set; } = String.Empty;
+
+        [CommandOption("--Max <MAX>")]
+        [Description("The maximum number of messages to peek from the queue")]
+        public int Max { get; set; } = 100;
     }
 
     public async override Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        await _serviceBus.GetDeadLetter(settings.Queue);
+        var msgs = await _serviceBus.PeekDLQ(settings.Queue, settings.Max);
 
         AnsiConsole.MarkupLine($"Reading DLQ of: [bold blue]{settings.Queue}[/]!");
 
         var table = new Table();
-        table.AddColumn("CorrelationId");
+        table.AddColumn("Id");
         table.AddColumn("Type");
-        table.AddRow("123", "TODO");
+        foreach (var msg in msgs)
+        {
+            table.AddRow(msg.Id, msg.Type);
+        }
 
         AnsiConsole.Write(table);
+
+
 
         return 0;
     }
