@@ -35,6 +35,8 @@ public static class Program
 
             config.AddCommand<SBCommand>("print")
                   .WithDescription("Print the DLQ");
+
+            config.AddCommand<Stats>("stats");
         });
 
         return app.Run(args);
