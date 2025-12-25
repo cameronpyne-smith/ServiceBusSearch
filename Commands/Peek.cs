@@ -4,6 +4,7 @@ using Spectre.Console.Json;
 using System.ComponentModel;
 using ServiceBusSearch.Services;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace ServiceBusSearch.Commands;
 
@@ -37,6 +38,10 @@ public class Peek : AsyncCommand<Peek.Settings>
         [CommandOption("--correlationId <CORRELATION_ID>")]
         [Description("Filter for messages with a matching correlation id")]
         public string CorrelationId { get; set; } = String.Empty;
+
+        [CommandOption("--where <WHERE>")]
+        [Description("Filter messages by query")]
+        public string Where { get; set; } = String.Empty;
     }
 
     public async override Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
@@ -48,6 +53,20 @@ public class Peek : AsyncCommand<Peek.Settings>
         if (!string.IsNullOrEmpty(settings.CorrelationId))
         {
             msgs = msgs.Where(msg => msg.Data?["CorrelationId"]?.ToString() == settings.CorrelationId).ToList();
+        }
+
+        // TODO: Add check with error if both where and correlation id flags are used
+        if (!string.IsNullOrEmpty(settings.Where))
+        {
+            // TODO: Add checks for malformed input
+            var path = settings.Where.Split("=")[0];
+            var query = settings.Where.Split("=")[1];
+            msgs = msgs.Where(msg =>
+            {
+                var root = JObject.FromObject(msg);
+                var token = root.SelectToken(path);
+                return token?.ToString() == query;
+            }).ToList();
         }
 
         if (settings.Json)
