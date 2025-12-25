@@ -5,11 +5,11 @@ using ServiceBusSearch.Models;
 
 namespace ServiceBusSearch.Services;
 
-public class ServiceBus : IServiceBus
+public class SBClient : ISBClient
 {
     private readonly AppSettings _appSettings;
 
-    public ServiceBus(AppSettings appSettings)
+    public SBClient(AppSettings appSettings)
     {
         _appSettings = appSettings;
     }
@@ -26,8 +26,24 @@ public class ServiceBus : IServiceBus
     {
         await using var client = new ServiceBusClient(_appSettings.ServiceBusConnectionString);
         var deadLetterReceiver = client.CreateReceiver($"{name}/$deadletterqueue");
-        var deadLetters = await deadLetterReceiver.PeekMessagesAsync(quantity);
-        List<CloudEventRequest> requests = deadLetters.Select(msg => JsonConvert.DeserializeObject<CloudEventRequest>(Encoding.UTF8.GetString(msg.Body))).ToList();
+
+        var allMessages = new List<ServiceBusReceivedMessage>();
+        long? sequenceNumber = null;
+        var batchSize = 250;
+
+        while (true)
+        {
+            if (allMessages.Count + batchSize > quantity) batchSize = quantity - allMessages.Count;
+            var batch = await deadLetterReceiver.PeekMessagesAsync(batchSize, sequenceNumber);
+            if (batch.Count == 0) break;
+            allMessages.AddRange(batch);
+            if (allMessages.Count >= quantity) break;
+            sequenceNumber = batch.Last().SequenceNumber + 1;
+        }
+
+        List<CloudEventRequest> requests = allMessages
+            .Select(msg => JsonConvert.DeserializeObject<CloudEventRequest>(Encoding.UTF8.GetString(msg.Body)))
+            .ToList();
         return requests;
     }
 }

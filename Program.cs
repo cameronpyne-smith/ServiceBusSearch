@@ -23,7 +23,7 @@ public static class Program
         configuration.Bind(settings);
         services.AddSingleton<AppSettings>(settings);
 
-        services.AddSingleton<IServiceBus, ServiceBus>();
+        services.AddSingleton<ISBClient, SBClient>();
 
         var registrar = new TypeRegistrar(services);
 
