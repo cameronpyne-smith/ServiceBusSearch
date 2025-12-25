@@ -33,20 +33,28 @@ public class Peek : AsyncCommand<Peek.Settings>
         [CommandOption("--table <TABLE>")]
         [Description("Print the messages as a table")]
         public bool Table { get; set; } = false;
+
+        [CommandOption("--correlationId <CORRELATION_ID>")]
+        [Description("Filter for messages with a matching correlation id")]
+        public string CorrelationId { get; set; } = String.Empty;
     }
 
     public async override Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
+        AnsiConsole.MarkupLine($"Reading DLQ of: [bold blue]{settings.Queue}[/]!");
         var msgs = await _sbClient.PeekDLQ(settings.Queue, settings.Max);
 
-        AnsiConsole.MarkupLine($"Reading DLQ of: [bold blue]{settings.Queue}[/]!");
-
         // TODO: Move these to functions
+        if (!string.IsNullOrEmpty(settings.CorrelationId))
+        {
+            msgs = msgs.Where(msg => msg.Data?["CorrelationId"]?.ToString() == settings.CorrelationId).ToList();
+        }
+
         if (settings.Json)
         {
             var json = JsonConvert.SerializeObject(
-    msgs,
-    Formatting.Indented);
+                msgs,
+                Formatting.Indented);
 
             var jsonText = new JsonText(json)
                 .MemberColor(Color.Purple)
