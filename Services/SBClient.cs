@@ -14,16 +14,9 @@ public class SBClient : ISBClient
         _appSettings = appSettings;
     }
 
-    public async Task GetDeadLetter(string queueName)
-    {
-        await using var client = new ServiceBusClient(_appSettings.ServiceBusConnectionString);
-        var deadLetterReceiver = client.CreateReceiver($"{queueName}/$deadletterqueue");
-        var msg = await deadLetterReceiver.ReceiveMessageAsync(TimeSpan.FromSeconds(10));
-        Console.WriteLine(msg.Body);
-    }
-
     public async Task<ICollection<CloudEventRequest>> PeekDLQ(string name, int quantity)
     {
+        // TODO: inject service bus client 
         await using var client = new ServiceBusClient(_appSettings.ServiceBusConnectionString);
         var deadLetterReceiver = client.CreateReceiver($"{name}/$deadletterqueue");
 
@@ -46,4 +39,20 @@ public class SBClient : ISBClient
             .ToList();
         return requests;
     }
+
+    // TODO: Make try delete messages, try catch and success/failure response
+    public async Task DeleteMessage(string queueName, ServiceBusReceivedMessage message)
+    {
+        await using var client = new ServiceBusClient(_appSettings.ServiceBusConnectionString);
+        // TODO: Make configurable if queue or DLQ
+        var deadLetterReceiver = client.CreateReceiver($"{queueName}/$deadletterqueue");
+
+        await deadLetterReceiver.CompleteMessageAsync(message);
+    }
+
+    public async Task DeleteMessage(string queueName, string correlationId)
+    { }
+
+    public async Task DeleteMessage(string queueName, string queryPath, string queryValue)
+    { }
 }

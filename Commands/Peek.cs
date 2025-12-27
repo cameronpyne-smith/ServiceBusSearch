@@ -55,7 +55,7 @@ public class Peek : AsyncCommand<Peek.Settings>
             msgs = msgs.Where(msg => msg.Data?["CorrelationId"]?.ToString() == settings.CorrelationId).ToList();
         }
 
-        // TODO: Add check with error if both where and correlation id flags are used
+        // TODO: Add check with error if both where and correlation id flags are used, or would it be useful to filter after correlationId?
         if (!string.IsNullOrEmpty(settings.Where))
         {
             // TODO: Add checks for malformed input

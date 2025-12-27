@@ -1,9 +1,15 @@
+using Azure.Messaging.ServiceBus;
 using ServiceBusSearch.Models;
 
 namespace ServiceBusSearch.Services;
 
 public interface ISBClient
 {
-    public Task GetDeadLetter(string queueName);
-    public Task<ICollection<CloudEventRequest>> PeekDLQ(string name, int quantity);
+    // READ
+    public Task<ICollection<CloudEventRequest>> PeekDLQ(string queueName, int quantity);
+
+    // DELETE
+    public Task DeleteMessage(string queueName, ServiceBusReceivedMessage message);
+    public Task DeleteMessage(string queueName, string correlationId);
+    public Task DeleteMessage(string queueName, string queryPath, string queryValue);
 }
