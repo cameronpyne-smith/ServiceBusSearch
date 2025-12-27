@@ -37,6 +37,7 @@ public static class Program
                   .WithDescription("Peek the messages in the queue");
 
             config.AddCommand<Stats>("stats");
+            config.AddCommand<Delete>("delete");
         });
 
         return app.Run(args);
