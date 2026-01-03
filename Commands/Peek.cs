@@ -77,8 +77,9 @@ public class Peek : AsyncCommand<Peek.Settings>
 
             var jsonText = new JsonText(json)
                 .MemberColor(Color.Purple)
+                .StringColor(Color.Green)
                 .NumberColor(Color.DarkOrange)
-                .StringColor(Color.Green);
+                .BooleanColor(Color.Blue);
             AnsiConsole.Write(jsonText);
         }
 

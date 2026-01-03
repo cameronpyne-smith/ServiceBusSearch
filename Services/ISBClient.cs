@@ -10,6 +10,8 @@ public interface ISBClient
 
     // DELETE
     public Task DeleteMessage(string queueName, ServiceBusReceivedMessage message);
-    public Task DeleteMessage(string queueName, string correlationId);
     public Task DeleteMessage(string queueName, string queryPath, string queryValue);
+
+    // DEFER
+    public Task UndeferAllMessages(string queueName);
 }

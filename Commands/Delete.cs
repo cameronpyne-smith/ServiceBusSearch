@@ -30,10 +30,10 @@ public class Delete : AsyncCommand<Delete.Settings>
 
     public async override Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        // TODO: Move these to functions
+        // TODO: How should this work with where?
         if (!string.IsNullOrEmpty(settings.CorrelationId))
         {
-            await _sbClient.DeleteMessage(settings.Queue, settings.CorrelationId);
+            await _sbClient.DeleteMessage(settings.Queue, "$.Data.CorrelationId", settings.CorrelationId);
             return 0;
         }
 

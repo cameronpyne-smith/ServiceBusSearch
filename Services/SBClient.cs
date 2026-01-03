@@ -41,7 +41,7 @@ public class SBClient : ISBClient
 
     // TODO: TBC: Seems like it would be better to defer the messages to be deleted
     // but this wouldn't work if there were existing deffered messages that we don't want to delete (could check condition again?)
-    public async Task DeleteMessage(string queueName, string correlationId)
+    public async Task DeleteMessage(string queueName, string queryPath, string queryValue)
     {
         // TODO: inject service bus client 
         await using var client =
@@ -79,10 +79,12 @@ public class SBClient : ISBClient
                 {
                     var json = JObject.Parse(message.Body.ToString());
                     matches =
-                        json.SelectToken("$.Data.CorrelationId")?.ToString()
-                        == correlationId;
+                        json.SelectToken(queryPath)?.ToString()
+                        == queryValue;
                 }
-                catch { }
+                catch (Exception e)
+                {
+                }
 
                 if (matches)
                 {
@@ -110,23 +112,6 @@ public class SBClient : ISBClient
         }
 
         await receiver.CloseAsync();
-    }
-
-    public async Task DeleteMessage(string queueName, string queryPath, string queryValue)
-    {
-        // TODO: inject service bus client 
-        await using var client = new ServiceBusClient(_appSettings.ServiceBusConnectionString);
-        var deadLetterReceiver = client.CreateReceiver($"{queueName}/$deadletterqueue");
-
-        var messages = await PeekMessages(deadLetterReceiver);
-        foreach (var message in messages)
-        {
-            var json = JObject.Parse(message.Body.ToString());
-            if (json.SelectToken(queryPath)?.ToString() == queryValue)
-            {
-                await deadLetterReceiver.CompleteMessageAsync(message);
-            }
-        }
     }
 
     private async Task<List<ServiceBusReceivedMessage>> PeekMessages(ServiceBusReceiver receiver)
@@ -165,4 +150,78 @@ public class SBClient : ISBClient
 
         return messages;
     }
+
+    // TODO: Needs cleanup
+    public async Task UndeferAllMessages(string queueName)
+    {
+        await using var client =
+            new ServiceBusClient(_appSettings.ServiceBusConnectionString);
+
+        var receiver = client.CreateReceiver(
+            queueName,
+            new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock,
+                SubQueue = SubQueue.DeadLetter
+            });
+
+        var sender = client.CreateSender(queueName);
+
+        var sequenceNumbers = new List<long>();
+        long? fromSequence = null;
+
+        // 1️⃣ Peek all messages
+        while (true)
+        {
+            var peeked = await receiver.PeekMessagesAsync(
+                100,
+                fromSequence);
+
+            if (peeked.Count == 0)
+                break;
+
+            sequenceNumbers.AddRange(peeked.Select(m => m.SequenceNumber));
+            fromSequence = peeked.Last().SequenceNumber + 1;
+        }
+
+        Console.WriteLine($"Found {sequenceNumbers.Count} deferred messages.");
+
+        int restored = 0;
+
+        // 2️⃣ Re-enqueue and delete deferred originals
+        foreach (var seq in sequenceNumbers)
+        {
+            try
+            {
+                var deferred = await receiver.ReceiveDeferredMessageAsync(seq);
+                if (deferred == null)
+                    continue;
+
+                var clone = new ServiceBusMessage(deferred.Body)
+                {
+                    ContentType = deferred.ContentType,
+                    CorrelationId = deferred.CorrelationId,
+                    Subject = deferred.Subject
+                };
+
+                foreach (var prop in deferred.ApplicationProperties)
+                    clone.ApplicationProperties[prop.Key] = prop.Value;
+
+                await sender.SendMessageAsync(clone);
+                await receiver.CompleteMessageAsync(deferred);
+
+                restored++;
+            }
+            catch (ServiceBusException ex)
+                when (ex.Reason == ServiceBusFailureReason.MessageNotFound)
+            {
+                // Not deferred — ignore
+            }
+        }
+
+        Console.WriteLine($"Restored {restored} messages.");
+
+        await receiver.CloseAsync();
+    }
+
 }
