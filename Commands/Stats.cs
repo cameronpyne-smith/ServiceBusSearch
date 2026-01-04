@@ -21,6 +21,10 @@ public class Stats : AsyncCommand<Stats.Settings>
         [Description("The name of the service bus queue")]
         public string Queue { get; set; } = String.Empty;
 
+        [CommandOption("--mainQueue")]
+        [Description("Switch from the dead letter queue to the main queue")]
+        public bool IsMainQueue { get; set; }
+
         [CommandOption("--max <MAX>")]
         [Description("The maximum number of messages to peek from the queue (default: 100)")]
         public int Max { get; set; } = 100;
@@ -33,7 +37,7 @@ public class Stats : AsyncCommand<Stats.Settings>
     public async override Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         AnsiConsole.MarkupLine($"Peeking DLQ of: [bold blue]{settings.Queue}[/]!");
-        var msgs = await _serviceBus.PeekDLQ(settings.Queue, settings.Max);
+        var msgs = await _serviceBus.Peek(settings.Queue, settings.Max, settings.IsMainQueue);
 
         var groups = msgs.GroupBy(msg => msg.Type);
         if (settings.Order) groups = groups.OrderByDescending(group => group.Count());

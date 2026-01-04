@@ -15,28 +15,27 @@ public class SBClient : ISBClient
         _appSettings = appSettings;
     }
 
-    public async Task<ICollection<CloudEventRequest>> PeekDLQ(string name, int quantity)
+    public async Task<ICollection<CloudEventRequest>> Peek(string queueName, int quantity, bool isMainQueue)
     {
         // TODO: inject service bus client 
         await using var client = new ServiceBusClient(_appSettings.ServiceBusConnectionString);
-        var deadLetterReceiver = client.CreateReceiver($"{name}/$deadletterqueue");
 
-        var messages = await PeekMessages(deadLetterReceiver, quantity);
+        var receiver = client.CreateReceiver(
+            queueName,
+            new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock,
+                SubQueue = isMainQueue ? SubQueue.None : SubQueue.DeadLetter,
+                PrefetchCount = 20
+            });
+
+
+        var messages = await PeekMessages(receiver, quantity);
 
         List<CloudEventRequest> requests = messages
             .Select(msg => JsonConvert.DeserializeObject<CloudEventRequest>(Encoding.UTF8.GetString(msg.Body)))
             .ToList();
         return requests;
-    }
-
-    // TODO: Make try delete messages, try catch and success/failure response
-    public async Task DeleteMessage(string queueName, ServiceBusReceivedMessage message)
-    {
-        await using var client = new ServiceBusClient(_appSettings.ServiceBusConnectionString);
-        // TODO: Make configurable if queue or DLQ
-        var deadLetterReceiver = client.CreateReceiver($"{queueName}/$deadletterqueue");
-
-        await deadLetterReceiver.CompleteMessageAsync(message);
     }
 
     // TODO: TBC: Seems like it would be better to defer the messages to be deleted

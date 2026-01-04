@@ -19,6 +19,7 @@ public class Peek : AsyncCommand<Peek.Settings>
 
     public class Settings : CommandSettings
     {
+        // TODO: Make all strings nullable, don't default to empty, it's not as clear
         [CommandOption("--queue <QUEUE>")]
         [Description("The name of the service bus queue")]
         public string Queue { get; set; } = String.Empty;
@@ -29,11 +30,11 @@ public class Peek : AsyncCommand<Peek.Settings>
 
         [CommandOption("--json <JSON>")]
         [Description("Print the messages in json")]
-        public bool Json { get; set; } = false;
+        public bool Json { get; set; }
 
         [CommandOption("--table <TABLE>")]
         [Description("Print the messages as a table")]
-        public bool Table { get; set; } = false;
+        public bool Table { get; set; }
 
         [CommandOption("--correlationId <CORRELATION_ID>")]
         [Description("Filter for messages with a matching correlation id")]
@@ -42,12 +43,16 @@ public class Peek : AsyncCommand<Peek.Settings>
         [CommandOption("--where <WHERE>")]
         [Description("Filter messages by query")]
         public string Where { get; set; } = String.Empty;
+
+        [CommandOption("--mainQueue")]
+        [Description("Switch from the dead letter queue to the main queue")]
+        public bool IsMainQueue { get; set; }
     }
 
     public async override Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         AnsiConsole.MarkupLine($"Reading DLQ of: [bold blue]{settings.Queue}[/]!");
-        var msgs = await _sbClient.PeekDLQ(settings.Queue, settings.Max);
+        var msgs = await _sbClient.Peek(settings.Queue, settings.Max, settings.IsMainQueue);
 
         // TODO: Move these to functions
         if (!string.IsNullOrEmpty(settings.CorrelationId))
