@@ -99,17 +99,8 @@ public class SBClient : ISBClient
             }
         }
 
-        const int restoreBatchSize = 50;
-        foreach (var batch in deferredSequenceNumbers.Chunk(restoreBatchSize))
-        {
-            var deferredMessages =
-                await receiver.ReceiveDeferredMessagesAsync(batch);
-
-            foreach (var message in deferredMessages)
-            {
-                await receiver.AbandonMessageAsync(message);
-            }
-        }
+        await UndeferAllMessages(queueName);
+        await DeadLetterAllMessages(queueName);
 
         await receiver.CloseAsync();
     }
