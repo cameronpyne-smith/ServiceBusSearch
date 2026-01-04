@@ -224,4 +224,44 @@ public class SBClient : ISBClient
         await receiver.CloseAsync();
     }
 
+    public async Task DeadLetterAllMessages(string queueName)
+    {
+        await using var client =
+            new ServiceBusClient(_appSettings.ServiceBusConnectionString);
+
+        var receiver = client.CreateReceiver(
+            queueName,
+            new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+            });
+
+        int deadLettered = 0;
+
+        Console.WriteLine("Dead-lettering messages...");
+
+        while (true)
+        {
+            var messages = await receiver.ReceiveMessagesAsync(
+                maxMessages: 50,
+                maxWaitTime: TimeSpan.FromSeconds(2));
+
+            if (messages.Count == 0)
+                break;
+
+            foreach (var message in messages)
+            {
+                await receiver.DeadLetterMessageAsync(
+                    message,
+                    deadLetterReason: "AdminDeadLetter",
+                    deadLetterErrorDescription: "Moved by CLI admin command");
+
+                deadLettered++;
+            }
+        }
+
+        Console.WriteLine($"Dead-lettered {deadLettered} messages.");
+
+        await receiver.CloseAsync();
+    }
 }

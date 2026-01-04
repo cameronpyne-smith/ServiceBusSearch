@@ -39,6 +39,7 @@ public static class Program
             config.AddCommand<Stats>("stats");
             config.AddCommand<Delete>("delete");
             config.AddCommand<Undefer>("undefer");
+            config.AddCommand<DeadLetter>("deadletter");
         });
 
         return app.Run(args);

@@ -14,4 +14,7 @@ public interface ISBClient
 
     // DEFER
     public Task UndeferAllMessages(string queueName);
+
+    // DEADLETTER
+    public Task DeadLetterAllMessages(string queueName);
 }
