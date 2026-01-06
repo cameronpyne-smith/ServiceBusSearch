@@ -1,3 +1,4 @@
+using Azure.Messaging.ServiceBus;
 using ServiceBusSearch.Models;
 
 namespace ServiceBusSearch.Services;
@@ -6,6 +7,10 @@ public interface ISBClient
 {
     // READ
     public Task<ICollection<CloudEventRequest>> Peek(string queueName, int quantity, bool isMainQueue);
+    public Task<IReadOnlyList<ServiceBusReceivedMessage>> PeekMessages(string queueName, bool isMainQueue);
+
+    // SEND
+    public Task Send(string queueName, ServiceBusMessage message);
 
     // DELETE
     public Task DeleteMessage(string queueName, string queryPath, string queryValue);

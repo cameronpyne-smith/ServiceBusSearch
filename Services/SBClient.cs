@@ -38,6 +38,32 @@ public class SBClient : ISBClient
         return requests;
     }
 
+    public async Task<IReadOnlyList<ServiceBusReceivedMessage>> PeekMessages(string queueName, bool isMainQueue)
+    {
+
+        await using var client = new ServiceBusClient(_appSettings.ServiceBusConnectionString);
+        // 1️⃣ Receiver (PEEK ONLY)
+        var receiver = client.CreateReceiver(
+            queueName,
+            new ServiceBusReceiverOptions
+            {
+                SubQueue = isMainQueue
+                    ? SubQueue.None
+                    : SubQueue.DeadLetter
+            });
+
+        // 2️⃣ Peek messages
+        var messages = await receiver.PeekMessagesAsync(50);
+        return messages;
+    }
+
+    public async Task Send(string queueName, ServiceBusMessage message)
+    {
+        await using var client = new ServiceBusClient(_appSettings.ServiceBusConnectionString);
+        var sender = client.CreateSender(queueName);
+        await sender.SendMessageAsync(message);
+    }
+
     // TODO: TBC: Seems like it would be better to defer the messages to be deleted
     // but this wouldn't work if there were existing deffered messages that we don't want to delete (could check condition again?)
     public async Task DeleteMessage(string queueName, string queryPath, string queryValue)

@@ -40,6 +40,7 @@ public static class Program
             config.AddCommand<Delete>("delete");
             config.AddCommand<Undefer>("undefer");
             config.AddCommand<DeadLetter>("deadletter");
+            config.AddCommand<Edit>("edit");
         });
 
         return app.Run(args);
