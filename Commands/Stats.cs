@@ -36,7 +36,6 @@ public class Stats : AsyncCommand<Stats.Settings>
 
     public async override Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        AnsiConsole.MarkupLine($"Peeking DLQ of: [bold blue]{settings.Queue}[/]!");
         var msgs = await _serviceBus.Peek(settings.Queue, settings.Max, settings.IsMainQueue);
 
         var groups = msgs.GroupBy(msg => msg.Type);

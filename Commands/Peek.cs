@@ -51,7 +51,6 @@ public class Peek : AsyncCommand<Peek.Settings>
 
     public async override Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        AnsiConsole.MarkupLine($"Reading DLQ of: [bold blue]{settings.Queue}[/]!");
         var msgs = await _sbClient.Peek(settings.Queue, settings.Max, settings.IsMainQueue);
 
         // TODO: Move these to functions
