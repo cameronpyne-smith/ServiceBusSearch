@@ -3,6 +3,7 @@ using ServiceBusSearch.Commands;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServiceBusSearch.Services;
+using Azure.Messaging.ServiceBus;
 
 namespace ServiceBusSearch;
 
@@ -23,6 +24,7 @@ public static class Program
         configuration.Bind(settings);
         services.AddSingleton<AppSettings>(settings);
 
+        services.AddSingleton<ServiceBusClient>(sp => new ServiceBusClient(settings.ServiceBusConnectionString));
         services.AddSingleton<ISBClient, SBClient>();
 
         var registrar = new TypeRegistrar(services);

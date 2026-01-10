@@ -99,7 +99,7 @@ public class Edit : AsyncCommand<Edit.Settings>
         await _sbClient.Send(settings.Queue, newMessage);
 
         AnsiConsole.MarkupLine(
-            $"[green]✔ Message cloned and sent successfully.[/]");
+            $"[green]✔  Message cloned and sent successfully.[/]");
 
         return 0;
     }

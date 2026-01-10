@@ -8,19 +8,16 @@ namespace ServiceBusSearch.Services;
 
 public class SBClient : ISBClient
 {
-    private readonly AppSettings _appSettings;
+    private readonly ServiceBusClient _serviceBusClient;
 
-    public SBClient(AppSettings appSettings)
+    public SBClient(ServiceBusClient serviceBusClient)
     {
-        _appSettings = appSettings;
+        _serviceBusClient = serviceBusClient;
     }
 
     public async Task<ICollection<CloudEventRequest>> Peek(string queueName, int quantity, bool isMainQueue)
     {
-        // TODO: inject service bus client 
-        await using var client = new ServiceBusClient(_appSettings.ServiceBusConnectionString);
-
-        var receiver = client.CreateReceiver(
+        var receiver = _serviceBusClient.CreateReceiver(
             queueName,
             new ServiceBusReceiverOptions
             {
@@ -28,7 +25,6 @@ public class SBClient : ISBClient
                 SubQueue = isMainQueue ? SubQueue.None : SubQueue.DeadLetter,
                 PrefetchCount = 20
             });
-
 
         var messages = await PeekMessages(receiver, quantity);
 
@@ -40,10 +36,7 @@ public class SBClient : ISBClient
 
     public async Task<IReadOnlyList<ServiceBusReceivedMessage>> PeekMessages(string queueName, bool isMainQueue)
     {
-
-        await using var client = new ServiceBusClient(_appSettings.ServiceBusConnectionString);
-        // 1️⃣ Receiver (PEEK ONLY)
-        var receiver = client.CreateReceiver(
+        var receiver = _serviceBusClient.CreateReceiver(
             queueName,
             new ServiceBusReceiverOptions
             {
@@ -52,27 +45,19 @@ public class SBClient : ISBClient
                     : SubQueue.DeadLetter
             });
 
-        // 2️⃣ Peek messages
         var messages = await receiver.PeekMessagesAsync(50);
         return messages;
     }
 
     public async Task Send(string queueName, ServiceBusMessage message)
     {
-        await using var client = new ServiceBusClient(_appSettings.ServiceBusConnectionString);
-        var sender = client.CreateSender(queueName);
+        var sender = _serviceBusClient.CreateSender(queueName);
         await sender.SendMessageAsync(message);
     }
 
-    // TODO: TBC: Seems like it would be better to defer the messages to be deleted
-    // but this wouldn't work if there were existing deffered messages that we don't want to delete (could check condition again?)
     public async Task DeleteMessage(string queueName, string queryPath, string queryValue)
     {
-        // TODO: inject service bus client 
-        await using var client =
-            new ServiceBusClient(_appSettings.ServiceBusConnectionString);
-
-        var receiver = client.CreateReceiver(
+        var receiver = _serviceBusClient.CreateReceiver(
             queueName,
             new ServiceBusReceiverOptions
             {
@@ -147,7 +132,6 @@ public class SBClient : ISBClient
         return messages;
     }
 
-    // TODO: Merge this and above to one function
     private async Task<List<ServiceBusReceivedMessage>> PeekMessages(ServiceBusReceiver receiver, int quantity)
     {
         var messages = new List<ServiceBusReceivedMessage>();
@@ -167,13 +151,9 @@ public class SBClient : ISBClient
         return messages;
     }
 
-    // TODO: Needs cleanup
     public async Task UndeferAllMessages(string queueName)
     {
-        await using var client =
-            new ServiceBusClient(_appSettings.ServiceBusConnectionString);
-
-        var receiver = client.CreateReceiver(
+        var receiver = _serviceBusClient.CreateReceiver(
             queueName,
             new ServiceBusReceiverOptions
             {
@@ -181,12 +161,11 @@ public class SBClient : ISBClient
                 SubQueue = SubQueue.DeadLetter
             });
 
-        var sender = client.CreateSender(queueName);
+        var sender = _serviceBusClient.CreateSender(queueName);
 
         var sequenceNumbers = new List<long>();
         long? fromSequence = null;
 
-        // 1️⃣ Peek all messages
         while (true)
         {
             var peeked = await receiver.PeekMessagesAsync(
@@ -204,7 +183,6 @@ public class SBClient : ISBClient
 
         int restored = 0;
 
-        // 2️⃣ Re-enqueue and delete deferred originals
         foreach (var seq in sequenceNumbers)
         {
             try
@@ -242,10 +220,7 @@ public class SBClient : ISBClient
 
     public async Task DeadLetterAllMessages(string queueName)
     {
-        await using var client =
-            new ServiceBusClient(_appSettings.ServiceBusConnectionString);
-
-        var receiver = client.CreateReceiver(
+        var receiver = _serviceBusClient.CreateReceiver(
             queueName,
             new ServiceBusReceiverOptions
             {
