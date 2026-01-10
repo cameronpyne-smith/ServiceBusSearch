@@ -38,6 +38,7 @@ public static class Program
             config.AddCommand<Peek>("peek")
                   .WithDescription("Peek the messages in the queue");
 
+            // TODO: Add descriptions and help message
             config.AddCommand<Stats>("stats");
             config.AddCommand<Delete>("delete");
             config.AddCommand<Undefer>("undefer");
