@@ -1,6 +1,7 @@
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using ServiceBusSearch.Services;
+using Spectre.Console;
 
 namespace ServiceBusSearch.Commands;
 
@@ -30,7 +31,14 @@ public class Delete : AsyncCommand<Delete.Settings>
 
     public async override Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        // TODO: How should this work with where?
+        // Is there a built in attribute for this?
+        if (!string.IsNullOrEmpty(settings.CorrelationId) && !string.IsNullOrEmpty(settings.Where))
+        {
+            // Is there a built in error message log?
+            AnsiConsole.MarkupLine("[red]You cannot use --correlationId and --where together[/]");
+            return 1;
+        }
+
         if (!string.IsNullOrEmpty(settings.CorrelationId))
         {
             await _sbClient.DeleteMessage(settings.Queue, "$.Data.CorrelationId", settings.CorrelationId);
@@ -39,9 +47,15 @@ public class Delete : AsyncCommand<Delete.Settings>
 
         if (!string.IsNullOrEmpty(settings.Where))
         {
-            // TODO: Add checks for malformed input
-            var path = settings.Where.Split("=")[0];
-            var query = settings.Where.Split("=")[1];
+            var split = settings.Where.Split("=");
+            if (split.Length != 1 || split.Length != 2)
+            {
+                AnsiConsole.MarkupLine("[red]--where should be of the format {query}={value} e.g. $.Data.Id=123[/]");
+                return 1;
+            }
+
+            var path = split[0];
+            var query = split.Length == 2 ? split[1] : "";
             await _sbClient.DeleteMessage(settings.Queue, path, query);
             return 0;
         }
