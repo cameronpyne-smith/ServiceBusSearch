@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Azure.Messaging.ServiceBus;
 using System.Diagnostics;
+using ServiceBusSearch.Models;
 
 namespace ServiceBusSearch.Commands;
 
@@ -46,10 +47,19 @@ public class Edit : AsyncCommand<Edit.Settings>
 
         var selected = AnsiConsole.Prompt(
             new SelectionPrompt<ServiceBusReceivedMessage>()
-                .Title("Select a message to clone & edit")
+                .Title("Select a message to clone & edit \nSequence number | Type | CorrelationId")
                 .PageSize(10)
-                .UseConverter(m =>
-                    $"{m.SequenceNumber} | {m.Subject ?? "(no subject)"} | {m.CorrelationId}")
+                .EnableSearch()
+                .SearchPlaceholderText("Type to search...")
+                .UseConverter(m => {
+                    CloudEventRequest? ce = null;
+                    try
+                    {
+                        ce = JsonConvert.DeserializeObject<CloudEventRequest>(m.Body.ToString());
+                    }
+                    catch { }
+                    return $"{m.SequenceNumber} | {ce?.Type ?? "(no type)"} | {ce?.Data["CorrelationId"] ?? "(no correlation id)"}";
+                })
                 .AddChoices(messages));
 
         var json = JObject.Parse(selected.Body.ToString());
