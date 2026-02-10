@@ -23,13 +23,14 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
-      - name: Publish
-        run: dotnet publish ServiceBusSearch.csproj --configuration Release --runtime win-x64 --self-contained true /p:PublishSingleFile=true --output ./publish
+      - name: Publish CLI
+        run: dotnet publish src/ServiceBusSearch.Cli/ServiceBusSearch.Cli.csproj --configuration Release --runtime win-x64 --self-contained true /p:PublishSingleFile=true --output ./publish/cli
+
+      - name: Publish MCP Server
+        run: dotnet publish src/ServiceBusSearch.McpServer/ServiceBusSearch.McpServer.csproj --configuration Release --runtime win-x64 --self-contained true /p:PublishSingleFile=true --output ./publish/mcp
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            publish/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            publish/cli/*
