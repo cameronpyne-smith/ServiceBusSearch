@@ -36,14 +36,17 @@ public static class Program
             config.SetApplicationName("servicebus-search");
 
             config.AddCommand<Peek>("peek")
-                  .WithDescription("Peek the messages in the queue");
-
-            // TODO: Add descriptions and help message
-            config.AddCommand<Stats>("stats");
-            config.AddCommand<Delete>("delete");
-            config.AddCommand<Undefer>("undefer");
-            config.AddCommand<DeadLetter>("deadletter");
-            config.AddCommand<Edit>("edit");
+                .WithDescription("Peek the messages in the queue.");
+            config.AddCommand<Stats>("stats")
+                .WithDescription("Bar chart grouping all messages in a queue by type.");
+            config.AddCommand<Delete>("delete")
+                .WithDescription("Delete messages by query.");
+            config.AddCommand<Undefer>("undefer")
+                .WithDescription("Make all deferred messages processable.");
+            config.AddCommand<DeadLetter>("deadletter")
+                .WithDescription("Move all messages in a queue to the dead letter queue.");
+            config.AddCommand<Edit>("edit")
+                .WithDescription("Clone and edit a message.");
         });
 
         return app.Run(args);
